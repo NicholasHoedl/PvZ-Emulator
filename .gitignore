@@ -352,3 +352,4 @@ healthchecksdb
 /debugger/src/assets/crater.png
 
 .clang-format
+.vscode
