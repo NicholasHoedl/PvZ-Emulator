@@ -5,7 +5,9 @@ The x64 C++ emulator with pybind11 bindings, loaded by the Python agent. The pvz
 ## Build
 
 - **x64 only**, built with CMake and Visual Studio Build Tools against 64-bit Python 3.11+. Never use the i686 harness toolchain here.
-- Build and test commands: TBD in step 0.8.
+- Packaging: `pyproject.toml` with scikit-build-core drives `CMakeLists.txt`; pybind11 comes from pip (`pybind11>=3.1`), not a vendored copy. The CMake static library is `pvzemu_core`; the Python module target and file are `pvzemu`.
+- Build (from the pvz-rl root, after `pip install scikit-build-core pybind11 ninja` into `.venv` once): `.venv\Scripts\python.exe -m pip install -e emulator --no-build-isolation`. The editable install copies the `.pyd` into site-packages, so rerun it after any C++ change.
+- Test (from the pvz-rl root): `.venv\Scripts\python.exe -m pytest emulator/tests`.
 
 ## Changes
 

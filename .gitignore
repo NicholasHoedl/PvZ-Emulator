@@ -353,3 +353,7 @@ healthchecksdb
 
 .clang-format
 .vscode
+# Python build outputs
+*.pyd
+*.egg-info/
+.pytest_cache/

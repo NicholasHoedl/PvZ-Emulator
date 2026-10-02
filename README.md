@@ -6,12 +6,24 @@ and Zombie Bobsled Team (They don't occur in Survival Endless). It supports
 all 6 scenes (Day, Night, Pool, Fog, Roof, and Moon Night).
 
 ### Install
-To build the Python module with CMake, add flags `-DPVZEMU_BUILD_PYBIND=True -DPYBIND11_PYTHON_VERSION=3.8` to your CMake build command.
-
-You can install through `pip` as well:
+The Python module needs Python 3.11+ (64-bit), CMake 3.15+ and a C++17
+compiler (on Windows, Visual Studio Build Tools with the x64 C++ tools).
+From the source directory:
 ```shell script
-python -m pip install git+https://github.com/dnartz/PvZ-Emulator
+python -m pip install -e .
 ```
+
+pip fetches the build requirements (`scikit-build-core`, `pybind11`) into an
+isolated environment. If they are already installed in the current
+environment, `--no-build-isolation` skips that step:
+```shell script
+python -m pip install scikit-build-core pybind11
+python -m pip install -e . --no-build-isolation
+```
+
+To build the Python module with CMake directly, add `-DPVZEMU_BUILD_PYBIND=ON`
+to your CMake command and make `pybind11` findable (for example
+`-Dpybind11_DIR=$(python -m pybind11 --cmakedir)`).
 
 ## Usage
 This emulator can be used as a static library or a python module. Include
