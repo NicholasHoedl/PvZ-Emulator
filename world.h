@@ -95,7 +95,14 @@ public:
 		projectile(scene),
 		cob_cannon(scene),
 		cob_cursor(w.cob_cursor)
-	{}
+	{
+		// the sun and spawn constructors overwrite the copied scene: sun draws
+		// natural_sun_countdown (system/sun.h:22), spawn calls reset() (system/spawn.cpp:40),
+		// both drawing from scene.rng, so restore all three from w
+		scene.spawn = w.scene.spawn;
+		scene.sun = w.scene.sun;
+		scene.rng = w.scene.rng;
+	}
 
 	bool update();
 	bool update(const std::tuple<int, int, int>& action);

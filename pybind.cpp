@@ -84,6 +84,12 @@ PYBIND11_MODULE(pvzemu, m) {
             std::string s;
             w.to_json(s);
             return s;
+        })
+        // unique_ptr: world has no move constructor, so returning by value would copy it twice
+        .def("clone", [](const world& w) { return std::make_unique<world>(w); })
+        .def("__copy__", [](const world& w) { return std::make_unique<world>(w); })
+        .def("__deepcopy__", [](const world& w, py::dict) {
+            return std::make_unique<world>(w);
         });
 
     py::class_<learning::observation_factory>(m, "ObservationFactory")

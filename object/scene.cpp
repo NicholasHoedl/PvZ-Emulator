@@ -32,6 +32,13 @@ scene::scene(const scene& s) :
             plant_map[p.row][p.col].coffee_bean = &p;
         } else if (p.type == plant_type::pumpkin) {
             plant_map[p.row][p.col].pumpkin = &p;
+        } else if (p.type == plant_type::cob_cannon) {
+            // a cannon also fills the cell to its right
+            // (system/plant/plant_factory.cpp:440-442, guard as in :516)
+            plant_map[p.row][p.col].content = &p;
+            if (p.col + 1 < 9) {
+                plant_map[p.row][p.col + 1].content = &p;
+            }
         } else {
             plant_map[p.row][p.col].content = &p;
         }
