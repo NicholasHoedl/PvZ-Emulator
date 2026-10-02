@@ -66,6 +66,7 @@ PYBIND11_MODULE(pvzemu, m) {
         .def("get_available_actions", &world::get_available_actions)
         .def_static("update_all", &world::update_all)
         .def(py::init<scene_type>())
+        .def(py::init<scene_type, unsigned int>(), py::arg("scene"), py::arg("seed"))
         .def("select_plants", &world::select_plants)
         .def("plant",
             (bool (world::*)(unsigned int, unsigned int, unsigned int)) & world::plant)
@@ -73,7 +74,17 @@ PYBIND11_MODULE(pvzemu, m) {
             (bool (world::*)(plant_type, unsigned int, unsigned int)) & world::plant)
         .def("check_build", &world::check_build)
         .def("reset", (void (world::*)(void)) & world::reset)
-        .def("reset", (void (world::*)(scene_type)) & world::reset);
+        .def("reset", (void (world::*)(scene_type)) & world::reset)
+        .def("reset", (void (world::*)(unsigned int)) & world::reset, py::arg("seed"))
+        .def("reset",
+            (void (world::*)(scene_type, unsigned int)) & world::reset,
+            py::arg("scene"),
+            py::arg("seed"))
+        .def("to_json", [](world &w) {
+            std::string s;
+            w.to_json(s);
+            return s;
+        });
 
     py::class_<learning::observation_factory>(m, "ObservationFactory")
         .def(py::init<
@@ -223,10 +234,16 @@ PYBIND11_MODULE(pvzemu, m) {
         .def_readwrite("stop_spawn", &scene::stop_spawn)
         .def_readwrite("enable_split_pea_bug", &scene::enable_split_pea_bug)
         .def(py::init<scene_type>())
+        .def(py::init<scene_type, unsigned int>(), py::arg("scene"), py::arg("seed"))
         .def("is_water_grid", &scene::is_water_grid)
         .def("get_max_row", &scene::get_max_row)
         .def("reset", (void (scene::*)(void)) & scene::reset)
-        .def("reset", (void (scene::*)(scene_type)) & scene::reset);
+        .def("reset", (void (scene::*)(scene_type)) & scene::reset)
+        .def("reset", (void (scene::*)(unsigned int)) & scene::reset, py::arg("seed"))
+        .def("reset",
+            (void (scene::*)(scene_type, unsigned int)) & scene::reset,
+            py::arg("scene"),
+            py::arg("seed"));
 
     py::class_<decltype(scene::zombies)>(m, "ZombieList")
         .def("__iter__", [](decltype(scene::zombies) &s) {

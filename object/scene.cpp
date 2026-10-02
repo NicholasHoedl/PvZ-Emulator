@@ -295,4 +295,13 @@ void scene::reset() {
     }
 }
 
+void scene::reset(unsigned int seed) {
+    reset();
+
+    // reset() draws from rng only for zombie_dancing_clock, so reseeding and redrawing
+    // here leaves the scene exactly as reset() would with this seed
+    rng = std::mt19937(seed);
+    zombie_dancing_clock = rng() % 10000;
+}
+
 }

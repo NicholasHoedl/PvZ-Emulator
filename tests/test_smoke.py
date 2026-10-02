@@ -28,10 +28,10 @@ CARDS = [
     pvzemu.PlantType.pumpkin,
 ]
 
-SHOVEL = -1  # emulator world.cpp:79
-SHOVEL_PUMPKIN = -2  # emulator world.cpp:75
-POOL_ROWS = 6  # emulator object/scene.h:159
-COLS = 9  # emulator world.cpp:74
+SHOVEL = -1  # emulator world.cpp:85
+SHOVEL_PUMPKIN = -2  # emulator world.cpp:81
+POOL_ROWS = 6  # emulator object/scene.h:170
+COLS = 9  # emulator world.cpp:80
 
 
 def _candidate_actions():

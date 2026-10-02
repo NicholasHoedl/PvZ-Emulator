@@ -62,6 +62,24 @@ public:
 		cob_cursor(0)
 	{}
 
+	// seeded: scene.rng starts from seed before spawn(scene) builds the spawn list
+	world(object::scene_type t, unsigned int seed):
+		scene(t, seed),
+		sun(scene),
+		spawn(scene),
+		ice_path(scene),
+		endgame(scene),
+		griditem(scene),
+		plant_system(scene),
+		plant_factory(scene),
+		zombie_factory(scene),
+		griditem_factory(scene),
+		zombie(scene),
+		projectile(scene),
+		cob_cannon(scene),
+		cob_cursor(0)
+	{}
+
 	world(const world& w) :
 		scene(w.scene),
 		sun(scene),
@@ -132,6 +150,22 @@ public:
 
 	void reset(object::scene_type type) {
 		scene.reset(type);
+		spawn.reset();
+		cob_cursor = 0;
+	}
+
+	// seeded resets replay world(t, seed): the sun system's constructor draws
+	// natural_sun_countdown (system/sun.h:21-23) before spawn(scene) draws, so run it again
+	void reset(unsigned int seed) {
+		scene.reset(seed);
+		system::sun redraw_sun(scene);
+		spawn.reset();
+		cob_cursor = 0;
+	}
+
+	void reset(object::scene_type type, unsigned int seed) {
+		scene.reset(type, seed);
+		system::sun redraw_sun(scene);
 		spawn.reset();
 		cob_cursor = 0;
 	}

@@ -145,6 +145,17 @@ public:
         stop_spawn(false),
         enable_split_pea_bug(true) {}
 
+    // seeded: the same as scene(t) except that rng starts from seed
+    scene(scene_type t, unsigned int seed) : type(t),
+        rng(seed),
+        zombie_dancing_clock(rng() % 10000),
+        rows(get_max_row()),
+        is_game_over(false),
+        is_zombie_dance(false),
+        is_future_enabled(false),
+        stop_spawn(false),
+        enable_split_pea_bug(true) {}
+
     scene(const scene& s);
 
     bool is_water_grid(int row, int col) {
@@ -168,6 +179,15 @@ public:
         rows = get_max_row();
 
         reset();
+    }
+
+    void reset(unsigned int seed);
+
+    void reset(scene_type type, unsigned int seed) {
+        this->type = type;
+        rows = get_max_row();
+
+        reset(seed);
     }
 };
 
