@@ -7,6 +7,7 @@
 #include "rapidjson/stringbuffer.h"
 
 #include "world.h"
+#include "system/util.h"
 
 using namespace pvz_emulator::object;
 
@@ -71,7 +72,12 @@ bool world::update(const std::tuple<int, int, int> &action) {
     int row = std::get<1>(action);
     int col = std::get<2>(action);
 
-    if (row >= 0 && row < scene.rows && col >= 0 && col < 9) {
+    if (op == -3) {
+        // (op, row, x): x is the click pixel and is not range-checked
+        if (row >= 0 && row < scene.rows) {
+            fire_next_cob(row, col);
+        }
+    } else if (row >= 0 && row < scene.rows && col >= 0 && col < 9) {
         if (op == -2) {
             if (scene.plant_map[row][col].pumpkin) {
                 plant_factory.destroy(*scene.plant_map[row][col].pumpkin);
@@ -119,8 +125,22 @@ void world::get_available_actions(
     std::set<std::pair<unsigned int, unsigned int>> imitater_type_actions;
     std::map<int, std::pair<unsigned int, unsigned int>> imitater_actions;
 
+    // -1: not computed yet; any_cob_armed() runs at the first -3 candidate only
+    int cob_armed = -1;
+
     for (int i = 0; i < actions.size(); i++) {
         const auto& [op, row, col] = actions[i];
+
+        // (-3, row, x): x is a pixel, so this goes before the col check below
+        if (op == -3) {
+            if (row >= 0 && row < scene.rows) {
+                if (cob_armed == -1) {
+                    cob_armed = any_cob_armed() ? 1 : 0;
+                }
+                action_masks[i] = cob_armed;
+            }
+            continue;
+        }
 
         if (row < 0 || row >= scene.rows || col < 0 || col >= 9) {
             continue;
@@ -295,6 +315,59 @@ bool world::plant(object::plant_type type, unsigned int row, unsigned int col) {
     }
 
     return false;
+}
+
+static bool is_armed_cob(const plant& p) {
+    return p.type == plant_type::cob_cannon &&
+        p.status == plant_status::cob_cannon_armed_idle &&
+        !p.is_dead &&
+        !p.is_smashed;
+}
+
+bool world::any_cob_armed() const {
+    for (const auto& p : scene.plants) {
+        if (is_armed_cob(p)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// Fires the first armed cannon whose slot is >= cob_cursor, else wraps to the
+// first armed cannon from slot 0. No-op if none is armed.
+bool world::fire_next_cob(int row, int x) {
+    object::plant* first = nullptr;
+    object::plant* next = nullptr;
+
+    for (auto& p : scene.plants) {
+        if (!is_armed_cob(p)) {
+            continue;
+        }
+
+        if (first == nullptr) {
+            first = &p;
+        }
+
+        if (static_cast<unsigned int>(scene.plants.get_index(p)) >= cob_cursor) {
+            next = &p;
+            break;
+        }
+    }
+
+    if (next == nullptr) {
+        next = first;
+    }
+
+    if (next == nullptr) {
+        return false;
+    }
+
+    int y = system::get_y_by_row_and_col(scene.type, row, system::get_col_by_x(x));
+    cob_cannon.launch(*next, x, y);
+    cob_cursor = scene.plants.get_index(*next) + 1;
+
+    return true;
 }
 
 bool world::check_build(const check_list &plants) {

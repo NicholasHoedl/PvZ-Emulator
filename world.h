@@ -35,6 +35,13 @@ public:
 	system::projectile_system projectile;
 
 private:
+	// world's own instance, like plant_system and plant_factory each own theirs
+	// (plant_system.h:19, plant_factory.h:15); those are private.
+	system::plant_cob_cannon cob_cannon;
+
+	// slot index after the last cannon fired by op = -3; the next fire scans from here
+	unsigned int cob_cursor;
+
 	void clean_obj_lists();
 
 public:
@@ -50,7 +57,9 @@ public:
 		zombie_factory(scene),
 		griditem_factory(scene),
 		zombie(scene),
-		projectile(scene)
+		projectile(scene),
+		cob_cannon(scene),
+		cob_cursor(0)
 	{}
 
 	world(const world& w) :
@@ -65,7 +74,9 @@ public:
 		zombie_factory(scene),
 		griditem_factory(scene),
 		zombie(scene),
-		projectile(scene)
+		projectile(scene),
+		cob_cannon(scene),
+		cob_cursor(w.cob_cursor)
 	{}
 
 	bool update();
@@ -109,14 +120,20 @@ public:
 
 	bool check_build(const check_list &plants);
 
+	bool any_cob_armed() const;
+
+	bool fire_next_cob(int row, int x);
+
 	void reset() {
 		scene.reset();
 		spawn.reset();
+		cob_cursor = 0;
 	}
 
 	void reset(object::scene_type type) {
 		scene.reset(type);
 		spawn.reset();
+		cob_cursor = 0;
 	}
 };
 

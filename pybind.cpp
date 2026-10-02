@@ -588,7 +588,7 @@ PYBIND11_MODULE(pvzemu, m) {
             &plant::threepeater_time_since_first_shot)
         .def_readonly("split_pea_attack_flags", &plant::split_pea_attack_flags)
         .def_readonly("is_dead", &plant::is_dead)
-        .def_readonly("is_smashed", &plant::is_smashed)
+        .def_readwrite("is_smashed", &plant::is_smashed)
         .def_readonly("is_sleeping", &plant::is_sleeping)
         .def_readonly("can_attack", &plant::can_attack)
         .def("is_squash_attacking", &plant::is_squash_attacking)
@@ -727,6 +727,7 @@ PYBIND11_MODULE(pvzemu, m) {
         .def("plant", &plant_factory::plant, py::return_value_policy::reference)
         .def("create",
             &plant_factory::create,
+            py::return_value_policy::reference_internal,
             py::arg("type"),
             py::arg("row"),
             py::arg("col"),
