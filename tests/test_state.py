@@ -52,6 +52,12 @@ Emulator facts used here (cited as emulator <path>:<line>):
   crater starts at countdown 18000.
 - world.cpp:23-29: once is_game_over is set, update() returns before advancing tick.
 - object/scene.h:171-175: pool water rows are 2 and 3, pool has 6 rows.
+- object/scene.h:91 and object/scene.cpp:288 (reset): spawn.total_flags starts at a nonzero
+  value, read here from a fresh world; step 1.8: the adapter writes flag = total_flags minus it.
+  system/spawn.cpp:421-425: total_flags + 1 when wave reaches 10; world.cpp:62-65: + 1 at a
+  round end, which system/endgame.h:12-14 signals on the update that counts countdown.endgame
+  from 1 to 0. system/spawn.cpp:390-396: the next wave comes 200 ticks early once the zombies'
+  HP is at or below the threshold, so clearing the zombies speeds the waves up.
 """
 import collections
 import time
@@ -77,6 +83,8 @@ WATER_ROWS = (2, 3)  # emulator object/scene.h:171
 N_SPAWN_FLAGS = 33  # emulator object/scene.h:85
 N_CD_TABLE = 48  # emulator object/plant.cpp:38
 COB_REARM = 3000  # emulator system/plant/plant_system.cpp:437
+# the flag counter's start value (emulator object/scene.h:91), read from a fresh world
+START_FLAGS = pvzemu.World(pvzemu.SceneType.pool, 0).scene.spawn.total_flags
 
 _P = pvzemu.PlantType
 _Z = pvzemu.ZombieType
@@ -139,6 +147,7 @@ TIMING_FILLS = 2000
 BATCH = 64
 FILL_US_BOUND = 100.0  # loose: fill_state is a few thousand stores
 BATCH_MS_BOUND = 10.0
+WAVE_10_CAP = 20_000
 
 
 def _defence_list():
@@ -306,7 +315,7 @@ def _expected(w):
         layout_hash=schema.LAYOUT_HASH_U32, struct_size=schema.STATE_SIZE,
         world=schema.WORLD_EMULATOR, valid=EXPECTED_VALID, tick=s.tick,
         phase=schema.PHASE_GAME_OVER if s.is_game_over else schema.PHASE_PLAYING, paused=0,
-        scene=int(s.type), flag=sp.total_flags, wave=sp.wave,
+        scene=int(s.type), flag=sp.total_flags - START_FLAGS, wave=sp.wave,
         next_wave_countdown=sp.countdown.next_wave, next_wave_is_huge=int(sp.wave % 10 == 9),
         sun=s.sun.sun,
         n_plants=counts["plants"][0], plants_overflow=counts["plants"][1],
@@ -514,6 +523,47 @@ def test_game_over_phase():
     assert w.scene.is_game_over
     buf, _ = _check(w, "game over")
     assert buf["hdr"][0]["phase"] == schema.PHASE_GAME_OVER
+
+
+def _flag(w, buf):
+    w.fill_state(buf)
+    return int(buf["hdr"][0]["flag"])
+
+
+def test_flag_is_zero_based():
+    buf = _buf()
+    w = pvzemu.World(pvzemu.SceneType.pool, SEED)
+    assert w.scene.spawn.total_flags == START_FLAGS
+    assert _flag(w, buf) == 0
+    w.scene.spawn.total_flags = START_FLAGS + 6
+    assert _flag(w, buf) == 6
+    _check(w, "flag 6")
+    w.scene.spawn.total_flags = START_FLAGS - 2
+    assert _flag(w, buf) == -2  # signed, not wrapped
+    w.reset(SEED)
+    assert w.scene.spawn.total_flags == START_FLAGS
+    assert _flag(w, buf) == 0
+
+    # The wave-10 step: flag 0 through wave 9, 1 from wave 10 on. Clearing the zombies before
+    # every update keeps the run alive and the waves quick (a test choice).
+    seen = set()
+    for _ in range(WAVE_10_CAP):
+        if w.scene.spawn.wave >= 10:
+            break
+        for z in list(w.scene.zombies):
+            w.zombie_factory.destroy(z)
+        w.update()
+        seen.add((w.scene.spawn.wave, _flag(w, buf)))
+    assert w.scene.spawn.wave == 10 and not w.scene.is_game_over
+    assert seen == {(wave, int(wave >= 10)) for wave in range(11)}
+    _check(w, "wave 10")
+
+    # The round end: flag 2 = 2 x one round completed, wave back to 0.
+    w.scene.spawn.countdown.endgame = 1
+    assert w.update() is True
+    assert w.scene.spawn.wave == 0
+    assert _flag(w, buf) == 2
+    _check(w, "round end")
 
 
 def test_every_live_byte_written():

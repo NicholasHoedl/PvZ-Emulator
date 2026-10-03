@@ -18,6 +18,10 @@ const uint32_t EMULATOR_VALID =
     PVZ_VALID_Z_IN_WATER | PVZ_VALID_Z_FLYING | PVZ_VALID_Z_HYPNO | PVZ_VALID_Z_DEBUFF |
     PVZ_VALID_Z_SPAWN_WAVE | PVZ_VALID_GRID | PVZ_VALID_GRID_COUNTDOWN;
 
+// spawn.total_flags starts here (object/scene.h:91, and on reset object/scene.cpp:288); the schema
+// flag counts from 0, so the adapter writes the counter minus this
+static constexpr int64_t EMULATOR_START_FLAGS = 1000;
+
 // Writes the first cap live objects of list (the iterator skips freed and freeable slots, in
 // ascending slot order: object/obj_list.h:26-39) and counts all of them; size() would also count
 // objects freed since the last shrink_to_fit (obj_list.h:158-188).
@@ -155,7 +159,8 @@ void fill_state(const world& w, pvz_state_t& out) noexcept {
     h.phase = s.is_game_over ? PVZ_PHASE_GAME_OVER : PVZ_PHASE_PLAYING;
     h.paused = 0;
     h.scene = static_cast<int32_t>(s.type);
-    h.flag = static_cast<int32_t>(s.spawn.total_flags);
+    h.flag = static_cast<int32_t>(
+        static_cast<int64_t>(s.spawn.total_flags) - EMULATOR_START_FLAGS);
     h.wave = static_cast<int32_t>(s.spawn.wave);
     h.next_wave_countdown = static_cast<int32_t>(s.spawn.countdown.next_wave);
     h.next_wave_is_huge = s.spawn.wave % 10 == 9 ? 1 : 0;

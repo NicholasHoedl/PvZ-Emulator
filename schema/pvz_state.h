@@ -194,7 +194,8 @@ typedef struct pvz_header_t {
     /* @40 flag: int32_t. valid: PVZ_VALID_FLAG.
      * 2 x rounds completed + (1 if wave >= 10)
      * emulator: total_flags follows this rule exactly (+1 when wave reaches 10, +1 at round
-     *   end) and is written VERBATIM, including its start of 1000 and whatever 1.5 sets
+     *   end); written as total_flags minus its start value (emulator object/scene.h:91,
+     *   object/scene.cpp:288), so the field is 0-based in both worlds
      * game: 2 x completed_rounds + (wave >= 10) */
     int32_t flag;
     /* @44 wave: int32_t. valid: PVZ_VALID_WAVE.
