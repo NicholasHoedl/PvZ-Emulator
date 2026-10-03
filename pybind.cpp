@@ -1,5 +1,6 @@
 #include <cstdint>
 #include <string>
+#include <unordered_map>
 
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
@@ -73,6 +74,84 @@ static pvz_state_t* state_data(
     return static_cast<pvz_state_t*>(p);
 }
 
+static std::string dims_str(const std::vector<py::ssize_t>& dims) {
+    std::string s = "(";
+    for (size_t i = 0; i < dims.size(); i++) {
+        s += (i ? ", " : "") + std::to_string(dims[i]);
+    }
+    return s + (dims.size() == 1 ? ",)" : ")");
+}
+
+static py::value_error array_error(
+    const char* fn,
+    const char* name,
+    const std::string& what,
+    const std::string& expected,
+    const std::string& got)
+{
+    return py::value_error(
+        std::string(fn) + ": " + name + " " + what + ": expected " + expected + ", got " + got);
+}
+
+// Checks, in order: dtype (exactly T), shape, C-contiguous, then writeable for an output;
+// raises ValueError (expected versus got) on the first that fails. Returns the data pointer:
+// the step reads and writes the arrays in place, no copy.
+template <typename T>
+static T* array_data(
+    const char* fn,
+    const char* name,
+    py::array& a,
+    const std::vector<py::ssize_t>& shape,
+    bool output)
+{
+    auto dt = py::dtype::of<T>();
+    if (!a.dtype().equal(dt)) {
+        throw array_error(fn, name, "dtype",
+            py::str(dt).cast<std::string>(), py::str(a.dtype()).cast<std::string>());
+    }
+
+    bool shape_ok = a.ndim() == static_cast<py::ssize_t>(shape.size());
+    for (size_t i = 0; shape_ok && i < shape.size(); i++) {
+        shape_ok = a.shape(static_cast<py::ssize_t>(i)) == shape[i];
+    }
+    if (!shape_ok) {
+        throw array_error(fn, name, "shape", dims_str(shape), shape_str(a));
+    }
+
+    if (!(a.flags() & py::array::c_style)) {
+        throw array_error(fn, name, "layout", "C-contiguous", "a non-contiguous array");
+    }
+
+    if (output && !a.writeable()) {
+        throw array_error(fn, name, "flags", "writeable", "a read-only array");
+    }
+
+    return static_cast<T*>(output ? a.mutable_data() : const_cast<void*>(a.data()));
+}
+
+// Raises ValueError for a None entry and, if distinct, for a world listed twice (two threads
+// would step it at once).
+static void check_worlds(const char* fn, const std::vector<world*>& worlds, bool distinct) {
+    for (size_t i = 0; i < worlds.size(); i++) {
+        if (worlds[i] == nullptr) {
+            throw py::value_error(
+                std::string(fn) + ": worlds[" + std::to_string(i) + "] is None");
+        }
+    }
+
+    if (distinct) {
+        std::unordered_map<const world*, size_t> seen;
+        for (size_t i = 0; i < worlds.size(); i++) {
+            auto [it, fresh] = seen.emplace(worlds[i], i);
+            if (!fresh) {
+                throw py::value_error(std::string(fn) + ": worlds[" + std::to_string(i) +
+                    "]: expected distinct worlds, got worlds[" + std::to_string(it->second) +
+                    "] twice");
+            }
+        }
+    }
+}
+
 PYBIND11_MODULE(pvzemu, m) {
     m.attr("STATE_VERSION") = PVZ_STATE_VERSION;
     m.attr("STATE_SIZE") = PVZ_STATE_SIZE;
@@ -80,6 +159,7 @@ PYBIND11_MODULE(pvzemu, m) {
     m.attr("STATE_MAGIC") = PVZ_STATE_MAGIC;
     m.attr("STATE_VALID") = learning::EMULATOR_VALID;
     m.attr("CD_TABLE") = py::tuple(py::cast(plant::CD_TABLE));
+    m.attr("OP_NOOP") = world::OP_NOOP;
 
     py::class_<std::vector<int>>(m, "IntVector")
         .def(py::init<>())
@@ -134,7 +214,68 @@ PYBIND11_MODULE(pvzemu, m) {
         .def("update", (bool (world::*)(void)) & world::update)
         .def("update", (bool (world::*)(const std::tuple<int, int, int>&)) & world::update)
         .def("get_available_actions", &world::get_available_actions)
+        .def("apply_action", &world::apply_action, py::arg("action"))
         .def_static("update_all", &world::update_all)
+        // N = len(worlds), M = len(candidates); arrays are C-contiguous with exact dtypes:
+        // actions int32 (N, 3), active uint8 (N,), sun_set int32 (N,) (-1 = leave),
+        // masks_out uint8 (N, M), applied_out uint8 (N,). All checks run before any world
+        // is touched; the step itself runs without the GIL.
+        .def_static("step_all", [](
+            std::vector<world*> worlds,
+            py::array actions,
+            py::array active,
+            py::array sun_set,
+            int frames,
+            const world::action_vector& candidates,
+            py::array masks_out,
+            py::array applied_out)
+        {
+            const char* fn = "step_all";
+            check_worlds(fn, worlds, true);
+            auto n = static_cast<py::ssize_t>(worlds.size());
+            auto m = static_cast<py::ssize_t>(candidates.size());
+
+            if (frames < 1) {
+                throw py::value_error(std::string(fn) +
+                    ": frames: expected at least 1, got " + std::to_string(frames));
+            }
+
+            auto a = array_data<int32_t>(fn, "actions", actions, {n, 3}, false);
+            auto act = array_data<uint8_t>(fn, "active", active, {n}, false);
+            auto sun = array_data<int32_t>(fn, "sun_set", sun_set, {n}, false);
+            auto masks = array_data<uint8_t>(fn, "masks_out", masks_out, {n, m}, true);
+            auto applied = array_data<uint8_t>(fn, "applied_out", applied_out, {n}, true);
+
+            py::gil_scoped_release release;
+            world::step_all(worlds, a, act, sun, static_cast<unsigned int>(frames),
+                candidates, masks, applied);
+        },
+            py::arg("worlds"),
+            py::arg("actions").noconvert(),
+            py::arg("active").noconvert(),
+            py::arg("sun_set").noconvert(),
+            py::arg("frames"),
+            py::arg("candidates"),
+            py::arg("masks_out").noconvert(),
+            py::arg("applied_out").noconvert())
+        // masks_out: uint8 (len(worlds), len(candidates)), C-contiguous, written in place
+        .def_static("masks_all", [](
+            std::vector<world*> worlds,
+            const world::action_vector& candidates,
+            py::array masks_out)
+        {
+            const char* fn = "masks_all";
+            check_worlds(fn, worlds, false);
+            auto n = static_cast<py::ssize_t>(worlds.size());
+            auto m = static_cast<py::ssize_t>(candidates.size());
+            auto masks = array_data<uint8_t>(fn, "masks_out", masks_out, {n, m}, true);
+
+            py::gil_scoped_release release;
+            world::masks_all(worlds, candidates, masks);
+        },
+            py::arg("worlds"),
+            py::arg("candidates"),
+            py::arg("masks_out").noconvert())
         .def(py::init<scene_type>())
         .def(py::init<scene_type, unsigned int>(), py::arg("scene"), py::arg("seed"))
         .def("select_plants", &world::select_plants)
@@ -399,7 +540,8 @@ PYBIND11_MODULE(pvzemu, m) {
         .def_readonly(
             "hugewave_fade",
             &decltype(scene::spawn_data::countdown)::hugewave_fade)
-        .def_readonly(
+        // writable: a round-end test hook (system/endgame.h:12-14)
+        .def_readwrite(
             "endgame",
             &decltype(scene::spawn_data::countdown)::endgame)
         .def_readonly("pool", &decltype(scene::spawn_data::countdown)::pool);

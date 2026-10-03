@@ -25,11 +25,11 @@ Emulator facts used here (cited as emulator <path>:<line>):
 - object/plant.cpp:252-254: set_reanim zeroes n_repeated and progress (fps >= 0);
   system/reanim.cpp:163-164: progress advances each update; reanim.cpp:175-178: a once
   animation stops at exactly 1 and sets n_repeated.
-- world.cpp:76-80: op -3 fires the next armed cob at (row, x).
+- world.cpp:85-89: op -3 fires the next armed cob at (row, x).
 - object/plant.cpp:38-45: CD_TABLE, 48 entries; system/plant/plant_factory.cpp:464 and :541: a
   planted card's cooldown is CD_TABLE[target], target = imitater_type for an imitater card.
-- world.cpp:116: a card counts as usable when its type is not none and cold_down == 0;
-  world.cpp:299-304: select_plants sets every slot past the given list to type none.
+- world.cpp:126: a card counts as usable when its type is not none and cold_down == 0;
+  world.cpp:409-414: select_plants sets every slot past the given list to type none.
 - object/zombie.h:231-234: is_flying_or_falling(); zombie.h:240-244: has_death_status().
   system/damage.cpp:124, 157 and 207: set_death_state() sets status dying and then destroys
   the zombie, so an ordinary death is never a live entry. The ash path keeps one:
@@ -70,8 +70,8 @@ CAP = dict(schema.CAPS)
 HEAD_BYTES = D.fields["plants"][1]  # header and all cards come before plants[]
 LIVE_ARRAYS = ("plants", "zombies", "griditems")  # the emulator writes no mowers
 
-COB_FIRE = -3  # step 1.2 action op, emulator world.cpp:76
-SHOVEL = -1  # emulator world.cpp:86
+COB_FIRE = -3  # step 1.2 action op, emulator world.cpp:85
+SHOVEL = -1  # emulator world.cpp:96
 POOL_ROWS = 6  # emulator object/scene.h:175
 WATER_ROWS = (2, 3)  # emulator object/scene.h:171
 N_SPAWN_FLAGS = 33  # emulator object/scene.h:85

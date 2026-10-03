@@ -1,4 +1,9 @@
 #pragma once
+#include <algorithm>
+#include <cstdint>
+#include <exception>
+#include <mutex>
+#include <stdexcept>
 #include <vector>
 #include <tuple>
 #include <string>
@@ -104,8 +109,15 @@ public:
 		scene.rng = w.scene.rng;
 	}
 
+	// an op that does nothing; apply_action reports it as applied
+	static constexpr int OP_NOOP = -4;
+
 	bool update();
 	bool update(const std::tuple<int, int, int>& action);
+
+	// update(action) without the tick: true iff something was planted, shovelled or fired,
+	// or the op is OP_NOOP
+	bool apply_action(const std::tuple<int, int, int>& action);
 
     using action_vector = std::vector<std::tuple<int, int, int>>;
 
@@ -115,6 +127,32 @@ public:
 	void get_available_actions(
 		const action_vector& actions,
 		std::vector<int>& action_masks) const;
+
+	// out[i] = 1 iff actions[i] is legal: the rules of get_available_actions, with no
+	// trailing no-op slot; out has actions.size() entries
+	void fill_action_masks(const action_vector& actions, uint8_t* out) const;
+
+	// Per world k with active[k] != 0: a world already over gets applied_out[k] = 0 and is
+	// neither edited nor ticked; any other gets applied_out[k] = apply_action(actions[k]),
+	// then up to frames update() calls (stopping once one returns true, like update_all),
+	// then sun = sun_set[k] if sun_set[k] >= 0. Both then get their row of masks_out
+	// (N x actions.size()) from fill_action_masks. Inactive worlds and their rows are left
+	// alone. actions is N x 3. frames == 0 throws std::invalid_argument.
+	static void step_all(
+		std::vector<world *>& w,
+		const int32_t* actions,
+		const uint8_t* active,
+		const int32_t* sun_set,
+		unsigned int frames,
+		const action_vector& cands,
+		uint8_t* masks_out,
+		uint8_t* applied_out);
+
+	// masks_out (N x cands.size()) from fill_action_masks, with no step
+	static void masks_all(
+		std::vector<world *>& w,
+		const action_vector& cands,
+		uint8_t* masks_out);
 
     using check_list = std::vector<std::tuple<
             object::plant_type,
@@ -179,6 +217,12 @@ public:
 		spawn.reset();
 		cob_cursor = 0;
 	}
+
+private:
+	// the mask rules shared by get_available_actions and fill_action_masks, so the two
+	// cannot drift: writes out[i] = 0 or 1 for every i < actions.size()
+	template <typename T>
+	void write_action_masks(const action_vector& actions, T* out) const;
 };
 
 }

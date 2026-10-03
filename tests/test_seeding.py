@@ -4,13 +4,13 @@ Emulator facts used here (cited as emulator <path>:<line>):
 - object/scene.h:43: scene.rng (std::mt19937) is the only random engine; system/rng.h draws
   every random number from it. Unseeded, it is seeded from std::random_device
   (object/scene.h:142, object/scene.cpp:272).
-- world.h:48-63: world's members are built in order scene, sun, spawn, ...; the sun system's
+- world.h:53-68: world's members are built in order scene, sun, spawn, ...; the sun system's
   constructor draws natural_sun_countdown (system/sun.h:21-23, sun.cpp:10-13) and then the
   spawn system's constructor (system/spawn.cpp:33-41, 458-469) builds the spawn flags and the
   20 x 50 spawn list, all from that rng, so the seed must be in place first.
-- world.cpp:76-80 and 359-364: (-3, row, x) fires the next armed cannon and does nothing when
-  none is armed; world.cpp:81-100: plant and shovel ops that are not legal do nothing.
-- object/scene.h:175: pool has 6 rows; world.cpp:81: 9 columns.
+- world.cpp:85-89 and 469-474: (-3, row, x) fires the next armed cannon and does nothing when
+  none is armed; world.cpp:90-112: plant and shovel ops that are not legal do nothing.
+- object/scene.h:175: pool has 6 rows; world.cpp:90: 9 columns.
 """
 import random
 import time
@@ -18,10 +18,10 @@ import time
 import pvzemu
 
 COB_FIRE = -3  # step 1.2 action op
-SHOVEL = -1  # emulator world.cpp:86
-SHOVEL_PUMPKIN = -2  # emulator world.cpp:82
+SHOVEL = -1  # emulator world.cpp:96
+SHOVEL_PUMPKIN = -2  # emulator world.cpp:91
 POOL_ROWS = 6  # emulator object/scene.h:175
-COLS = 9  # emulator world.cpp:81
+COLS = 9  # emulator world.cpp:90
 TICKS = 10_000
 
 # Test choices, not game facts: the same ten cards as the 0.9 smoke test, four cannons on

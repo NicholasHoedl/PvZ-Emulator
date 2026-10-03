@@ -1,10 +1,10 @@
 """Step 0.9 smoke tests: random legal play never crashes; the first wave spawns on update 600.
 
 Emulator facts used here (cited as emulator <path>:<line>):
-- world.cpp:71-104: update((op, row, col)) plants the card whose type id equals op,
+- world.cpp:71-116: update((op, row, col)) plants the card whose type id equals op,
   op == -1 shovels the coffee bean / content / base, op == -2 shovels the pumpkin.
-- world.cpp:122-124: the mask has len(actions) + 1 slots and the last slot is always 1 (no-op).
-- world.h:115-117 / pybind.cpp:17,84: masks is an out parameter of the opaque type IntVector.
+- world.cpp:198-200: the mask has len(actions) + 1 slots and the last slot is always 1 (no-op).
+- world.h:127-129 / pybind.cpp:18,164: masks is an out parameter of the opaque type IntVector.
 - spawn.cpp:462 and spawn.cpp:377,404,412-414: next_wave starts at 600, is decremented once per
   update, and the wave's zombies are created on the update where it reaches 0.
 """
@@ -28,10 +28,10 @@ CARDS = [
     pvzemu.PlantType.pumpkin,
 ]
 
-SHOVEL = -1  # emulator world.cpp:86
-SHOVEL_PUMPKIN = -2  # emulator world.cpp:82
+SHOVEL = -1  # emulator world.cpp:96
+SHOVEL_PUMPKIN = -2  # emulator world.cpp:91
 POOL_ROWS = 6  # emulator object/scene.h:175
-COLS = 9  # emulator world.cpp:81
+COLS = 9  # emulator world.cpp:90
 
 
 def _candidate_actions():
@@ -58,7 +58,7 @@ def test_random_legal_actions_10000_ticks():
     # std::random_device (emulator object/scene.h:142) and is not reachable from Python.
     rng = random.Random(9)
     w = _pool_world()
-    # The binding drops the C++ default for imitater_type (pybind.cpp:140), so pass it.
+    # The binding drops the C++ default for imitater_type (pybind.cpp:281), so pass it.
     assert w.select_plants(CARDS, pvzemu.PlantType.none) is True
     assert [c.type for c in w.scene.cards] == CARDS
 
@@ -99,7 +99,7 @@ def test_random_legal_actions_10000_ticks():
           "plants:", len(w.scene.plants))
     print("ticks/s: %.0f (random legal actions incl. get_available_actions)" % (ticks / elapsed))
     # Random play must have found at least one legal non-no-op action: sun starts at 9990
-    # (emulator object/scene.h:103) and every card starts with cold_down 0 (world.cpp:295-297).
+    # (emulator object/scene.h:103) and every card starts with cold_down 0 (world.cpp:405-407).
     assert taken > 0
 
 

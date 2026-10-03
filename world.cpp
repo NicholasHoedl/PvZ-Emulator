@@ -69,45 +69,55 @@ bool world::update() {
 }
 
 bool world::update(const std::tuple<int, int, int> &action) {
+    apply_action(action);
+    return update();
+}
+
+bool world::apply_action(const std::tuple<int, int, int> &action) {
     int op = std::get<0>(action);
     int row = std::get<1>(action);
     int col = std::get<2>(action);
 
+    if (op == OP_NOOP) {
+        return true;
+    }
+
     if (op == -3) {
         // (op, row, x): x is the click pixel and is not range-checked
         if (row >= 0 && row < scene.rows) {
-            fire_next_cob(row, col);
+            return fire_next_cob(row, col);
         }
     } else if (row >= 0 && row < scene.rows && col >= 0 && col < 9) {
         if (op == -2) {
             if (scene.plant_map[row][col].pumpkin) {
                 plant_factory.destroy(*scene.plant_map[row][col].pumpkin);
+                return true;
             }
         } else if (op == -1) {
             if (scene.plant_map[row][col].coffee_bean) {
                 plant_factory.destroy(*scene.plant_map[row][col].coffee_bean);
+                return true;
             } else if (scene.plant_map[row][col].content) {
                 plant_factory.destroy(*scene.plant_map[row][col].content);
+                return true;
             } else if (scene.plant_map[row][col].base) {
                 plant_factory.destroy(*scene.plant_map[row][col].base);
+                return true;
             }
         } else {
             for (int i = 0; i < 10; i++) {
                 if (static_cast<int>(scene.cards[i].type) == op) {
-                    plant(i, row, col);
-                    break;
+                    return plant(i, row, col);
                 }
             }
         }
     }
 
-    return update();
+    return false;
 }
 
-void world::get_available_actions(
-    const action_vector& actions,
-    std::vector<int>& action_masks) const
-{
+template <typename T>
+void world::write_action_masks(const action_vector& actions, T* out) const {
     std::array<bool, static_cast<int>(plant_type::imitater) + 1> card_flags = {false};
     std::array<int, static_cast<int>(plant_type::imitater) + 1> card_index = {0};
     for (int i = 0; i < 10; i++) {
@@ -119,18 +129,12 @@ void world::get_available_actions(
         }
     }
 
-    action_masks.resize(actions.size() + 1, 0);
-    std::fill(action_masks.begin(), action_masks.end(), 0);
-    action_masks.back() = 1;
-
-    std::set<std::pair<unsigned int, unsigned int>> imitater_type_actions;
-    std::map<int, std::pair<unsigned int, unsigned int>> imitater_actions;
-
     // -1: not computed yet; any_cob_armed() runs at the first -3 candidate only
     int cob_armed = -1;
 
-    for (int i = 0; i < actions.size(); i++) {
+    for (size_t i = 0; i < actions.size(); i++) {
         const auto& [op, row, col] = actions[i];
+        out[i] = 0;
 
         // (-3, row, x): x is a pixel, so this goes before the col check below
         if (op == -3) {
@@ -138,7 +142,7 @@ void world::get_available_actions(
                 if (cob_armed == -1) {
                     cob_armed = any_cob_armed() ? 1 : 0;
                 }
-                action_masks[i] = cob_armed;
+                out[i] = static_cast<T>(cob_armed);
             }
             continue;
         }
@@ -152,24 +156,24 @@ void world::get_available_actions(
                 !scene.plant_map[row][col].pumpkin->is_dead &&
                 !scene.plant_map[row][col].pumpkin->is_smashed)
             {
-                action_masks[i] = 1;
+                out[i] = 1;
             }
         } else if (op == -1) {
             if (scene.plant_map[row][col].coffee_bean &&
                 !scene.plant_map[row][col].coffee_bean->is_dead &&
                 !scene.plant_map[row][col].coffee_bean->is_smashed)
             {
-                action_masks[i] = 1;
+                out[i] = 1;
             } else if (scene.plant_map[row][col].content &&
                !scene.plant_map[row][col].content->is_dead &&
                !scene.plant_map[row][col].content->is_smashed)
             {
-                action_masks[i] = 1;
+                out[i] = 1;
             } else if (scene.plant_map[row][col].base &&
                !scene.plant_map[row][col].base->is_dead &&
                !scene.plant_map[row][col].base->is_smashed)
             {
-                action_masks[i] = 1;
+                out[i] = 1;
             }
         } else if (op >= 0) {
             if (op <= static_cast<int>(plant_type::imitater) &&
@@ -181,10 +185,116 @@ void world::get_available_actions(
                     scene.cards[card_index[op]].type,
                     scene.cards[card_index[op]].imitater_type))
             {
-                action_masks[i] = 1;
+                out[i] = 1;
             }
         }
     }
+}
+
+void world::get_available_actions(
+    const action_vector& actions,
+    std::vector<int>& action_masks) const
+{
+    action_masks.resize(actions.size() + 1, 0);
+    std::fill(action_masks.begin(), action_masks.end(), 0);
+    action_masks.back() = 1;
+
+    write_action_masks(actions, action_masks.data());
+}
+
+void world::fill_action_masks(const action_vector& actions, uint8_t* out) const {
+    write_action_masks(actions, out);
+}
+
+// Runs f(k) for k in [0, n) on up to hardware_concurrency threads created for this call,
+// taking k from an atomic index like update_all. An exception (e.g. std::bad_alloc from a
+// full obj_list) stops the remaining work and is rethrown here instead of terminating.
+template <typename F>
+static void for_each_world(size_t n, F f) {
+    std::atomic<size_t> i = 0;
+    std::exception_ptr error;
+    std::mutex error_mutex;
+    auto n_threads = std::min<size_t>(n, std::max(1u, std::thread::hardware_concurrency()));
+
+    std::vector<std::thread> threads;
+    for (size_t j = 0; j < n_threads; j++) {
+        threads.emplace_back([&]() {
+            try {
+                for (auto k = i.fetch_add(1); k < n; k = i.fetch_add(1)) {
+                    f(k);
+                }
+            } catch (...) {
+                i = n;
+                std::lock_guard<std::mutex> lock(error_mutex);
+                if (!error) {
+                    error = std::current_exception();
+                }
+            }
+        });
+    }
+
+    for (auto& t : threads) {
+        t.join();
+    }
+
+    if (error) {
+        std::rethrow_exception(error);
+    }
+}
+
+void world::step_all(
+    std::vector<world *>& w,
+    const int32_t* actions,
+    const uint8_t* active,
+    const int32_t* sun_set,
+    unsigned int frames,
+    const action_vector& cands,
+    uint8_t* masks_out,
+    uint8_t* applied_out)
+{
+    if (frames == 0) {
+        throw std::invalid_argument("step_all: frames must be at least 1");
+    }
+
+    auto m = cands.size();
+
+    for_each_world(w.size(), [&](size_t k) {
+        if (!active[k]) {
+            return;
+        }
+
+        auto& wk = *w[k];
+
+        if (wk.scene.is_game_over) {
+            applied_out[k] = 0;
+        } else {
+            const int32_t* a = actions + 3 * k;
+            applied_out[k] = wk.apply_action({a[0], a[1], a[2]}) ? 1 : 0;
+
+            bool done = wk.update();
+            for (unsigned int l = 1; l < frames && !done; l++) {
+                done = wk.update();
+            }
+
+            if (sun_set[k] >= 0) {
+                wk.scene.sun.sun = static_cast<unsigned int>(sun_set[k]);
+            }
+        }
+
+        wk.fill_action_masks(cands, masks_out + k * m);
+    });
+}
+
+void world::masks_all(
+    std::vector<world *>& w,
+    const action_vector& cands,
+    uint8_t* masks_out)
+{
+    auto m = cands.size();
+
+    for_each_world(w.size(), [&](size_t k) {
+        w[k]->fill_action_masks(cands, masks_out + k * m);
+    });
 }
 
 void world::update_all(

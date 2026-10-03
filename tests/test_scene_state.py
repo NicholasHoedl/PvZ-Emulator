@@ -6,22 +6,22 @@ Emulator facts used here (cited as emulator <path>:<line>):
   a zombie entering the house sets is_game_over and returns true;
   system/zombie/zombie_system.cpp:757-758 and 827-828: that happens when a zombie walks past
   the house threshold.
-- world.cpp:71-104: update(action) applies the action, ignoring an out-of-range row or col
-  (world.cpp:81), then ends with return update().
-- world.h:155-181: every World.reset overload calls a scene.reset overload;
+- world.cpp:71-74: update(action) applies the action, ignoring an out-of-range row or col
+  (world.cpp:90), then ends with return update().
+- world.h:193-219: every World.reset overload calls a scene.reset overload;
   object/scene.h:182-196 and object/scene.cpp:310-311: every scene.reset overload runs
   scene::reset(), which sets tick = 0 (scene.cpp:275).
-- world.h:83-84: world's copy constructor copies the scene with scene(w.scene);
+- world.h:88-89: world's copy constructor copies the scene with scene(w.scene);
   object/scene.cpp:5-23 is that copy constructor's initialiser list.
 - object/scene.cpp:83-87: to_json writes "rows", then "tick"; scene.cpp:131-132 and 265-266:
-  it writes "total_flags" and "stop_spawn"; world.cpp:224-230: World.to_json is scene.to_json
+  it writes "total_flags" and "stop_spawn"; world.cpp:334-340: World.to_json is scene.to_json
   written with a rapidjson Writer (no spaces).
 - object/scene.h:92 and object/scene.cpp:289: the first wave comes 600 updates in, so a board
   with no plants is eventually overrun.
 """
 import pvzemu
 
-SHOVEL = -1  # emulator world.cpp:86
+SHOVEL = -1  # emulator world.cpp:96
 SEED = 7
 
 # Test choices, not game facts: a short tick count, an out-of-range cell for the illegal

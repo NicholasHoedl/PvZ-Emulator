@@ -160,7 +160,7 @@ void scene::to_json(rapidjson::Writer<rapidjson::StringBuffer>& writer) {
     writer.Uint(spawn.countdown.hugewave_fade);
 
     writer.Key("endgame");
-    writer.Uint(spawn.countdown.hugewave_fade);
+    writer.Uint(spawn.countdown.endgame);
 
     writer.Key("pool");
     writer.Uint(spawn.countdown.pool);
