@@ -27,9 +27,9 @@ class plant_factory {
         grid_plant_status& status,
         object::plant_type advanced) const;
 
+public:
     unsigned int get_cost(object::plant_type type) const;
 
-public:
     bool can_plant(
         unsigned int row,
         unsigned int col,

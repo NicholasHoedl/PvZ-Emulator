@@ -145,6 +145,9 @@ public:
 
 	bool check_build(const check_list &plants);
 
+	// places plants on an empty board with no sun cost or cooldown, then check_build
+	bool build(const check_list &plants);
+
 	bool any_cob_armed() const;
 
 	bool fire_next_cob(int row, int x);

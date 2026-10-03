@@ -73,6 +73,7 @@ PYBIND11_MODULE(pvzemu, m) {
         .def("plant",
             (bool (world::*)(plant_type, unsigned int, unsigned int)) & world::plant)
         .def("check_build", &world::check_build)
+        .def("build", &world::build)
         .def("reset", (void (world::*)(void)) & world::reset)
         .def("reset", (void (world::*)(scene_type)) & world::reset)
         .def("reset", (void (world::*)(unsigned int)) & world::reset, py::arg("seed"))
@@ -217,7 +218,7 @@ PYBIND11_MODULE(pvzemu, m) {
         .def_readonly("coffee_bean", &grid_plant_status::coffee_bean);
 
     py::class_<scene::sun_data>(m, "SunData")
-        .def_readonly("sun", &scene::sun_data::sun)
+        .def_readwrite("sun", &scene::sun_data::sun)
         .def_readonly("natural_sun_countdown", &scene::sun_data::natural_sun_countdown)
         .def_readonly("natural_sun_generated", &scene::sun_data::natural_sun_generated);
 
@@ -282,7 +283,7 @@ PYBIND11_MODULE(pvzemu, m) {
 
     py::class_<scene::spawn_data>(m, "SpawnData")
         .def_readonly("spawn_list", &scene::spawn_data::spawn_list)
-        .def_readonly("total_flags", &scene::spawn_data::total_flags)
+        .def_readwrite("total_flags", &scene::spawn_data::total_flags)
         .def_readonly("wave", &scene::spawn_data::wave)
         .def_readonly("hp", &scene::spawn_data::hp)
         .def_readonly("countdown", &scene::spawn_data::countdown)
@@ -747,6 +748,7 @@ PYBIND11_MODULE(pvzemu, m) {
     py::class_<plant_factory>(m, "PlantFactory")
         .def(py::init<scene&>())
         .def("can_plant", &plant_factory::can_plant)
+        .def("get_cost", &plant_factory::get_cost)
         .def("plant", &plant_factory::plant, py::return_value_policy::reference)
         .def("create",
             &plant_factory::create,
