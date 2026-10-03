@@ -26,6 +26,7 @@ bool world::update() {
     }
 
     scene.zombie_dancing_clock += 1;
+    ++scene.tick;
 
     clean_obj_lists();
 

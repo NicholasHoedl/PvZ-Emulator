@@ -5,24 +5,24 @@ Emulator facts used here (cited as emulator <path>:<line>):
   copy; the sun system's constructor redraws natural_sun_countdown (system/sun.h:21-23) and the
   spawn system's constructor calls reset() (system/spawn.cpp:33-41), which rebuilds the spawn
   flags and the spawn list (spawn.cpp:458-469), all from scene.rng.
-- object/scene.cpp:5-40: scene's copy constructor rebuilds plant_map from the plant list;
+- object/scene.cpp:5-47: scene's copy constructor rebuilds plant_map from the plant list;
   system/plant/plant_factory.cpp:440-442: a cannon occupies plant_map[row][col] and [col + 1];
   plant_factory.cpp:249-251: a plain plant can't go where plant_map[row][col].content is set.
-- world.cpp:85-91: op -1 shovels plant_map[row][col].content; world.cpp:173-182: a card's mask
+- world.cpp:86-92: op -1 shovels plant_map[row][col].content; world.cpp:174-185: a card's mask
   is 1 when it is off cooldown and plant_factory.can_plant agrees.
 - system/plant/cob_cannon.cpp:34: launch() sets countdown.launch = 206, so the cob projectile
   appears about 200 updates after the fire.
-- object/scene.h:170: pool has 6 rows; world.cpp:80: 9 columns.
+- object/scene.h:175: pool has 6 rows; world.cpp:81: 9 columns.
 """
 import copy
 
 import pvzemu
 
 COB_FIRE = -3  # step 1.2 action op
-SHOVEL = -1  # emulator world.cpp:85
-SHOVEL_PUMPKIN = -2  # emulator world.cpp:81
-POOL_ROWS = 6  # emulator object/scene.h:170
-COLS = 9  # emulator world.cpp:80
+SHOVEL = -1  # emulator world.cpp:86
+SHOVEL_PUMPKIN = -2  # emulator world.cpp:82
+POOL_ROWS = 6  # emulator object/scene.h:175
+COLS = 9  # emulator world.cpp:81
 
 # Test choices, not game facts: the 1.3 seeding test's ten cards and defence, two cannons on
 # land rows at col 0, a click pixel inside the lawn, and caps on tick loops.
@@ -44,7 +44,7 @@ COB_CELLS = [(1, 0), (4, 0)]
 CLICK_X = 600
 LAND_DEFENCE = [None, None, _P.winter_melon] + [_P.gatling_pea] * 4 + [_P.tallnut] * 2
 WATER_DEFENCE = [_P.cattail] * 2 + [_P.winter_melon] + [_P.gatling_pea] * 4 + [_P.tallnut] * 2
-WATER_ROWS = (2, 3)  # emulator object/scene.h:166
+WATER_ROWS = (2, 3)  # emulator object/scene.h:171
 ARM_CAP = 5000  # same cap as the 1.2 cob test
 FLIGHT_CAP = 2000
 

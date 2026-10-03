@@ -44,6 +44,9 @@ public:
 
     unsigned int zombie_dancing_clock;
 
+    // simulated updates since the last reset; frozen once the game is over (world::update)
+    unsigned int tick;
+
     unsigned int rows;
 
     obj_list<object::zombie, 1024> zombies;
@@ -138,6 +141,7 @@ public:
     scene(scene_type t) : type(t),
         rng(std::random_device()()),
         zombie_dancing_clock(rng() % 10000),
+        tick(0),
         rows(get_max_row()),
         is_game_over(false),
         is_zombie_dance(false),
@@ -149,6 +153,7 @@ public:
     scene(scene_type t, unsigned int seed) : type(t),
         rng(seed),
         zombie_dancing_clock(rng() % 10000),
+        tick(0),
         rows(get_max_row()),
         is_game_over(false),
         is_zombie_dance(false),

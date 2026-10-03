@@ -6,6 +6,7 @@ scene::scene(const scene& s) :
     type(s.type),
     rng(s.rng),
     zombie_dancing_clock(s.zombie_dancing_clock),
+    tick(s.tick),
     rows(s.rows),
     zombies(s.zombies),
     plants(s.plants),
@@ -81,6 +82,9 @@ void scene::to_json(rapidjson::Writer<rapidjson::StringBuffer>& writer) {
 
     writer.Key("rows");
     writer.Uint(rows);
+
+    writer.Key("tick");
+    writer.Uint(tick);
 
     writer.Key("zombies");
     writer.StartArray();
@@ -268,6 +272,7 @@ void scene::reset() {
     rng = std::mt19937(std::random_device()());
 
     zombie_dancing_clock = rng() % 10000;
+    tick = 0;
     is_zombie_dance = false;
     is_future_enabled = false;
     is_game_over = false;

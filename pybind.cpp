@@ -1,8 +1,13 @@
+#include <cstdint>
+#include <string>
+
 #include <pybind11/pybind11.h>
+#include <pybind11/numpy.h>
 #include <pybind11/stl.h>
 
 #include "world.h"
 #include "learning/observation_factory.h"
+#include "learning/pvz_state_adapter.h"
 
 namespace py = pybind11;
 
@@ -13,7 +18,69 @@ PYBIND11_MAKE_OPAQUE(std::vector<int>);
 PYBIND11_MAKE_OPAQUE(std::vector<float>);
 PYBIND11_MAKE_OPAQUE(pvz_emulator::world::batch_action_masks);
 
+static std::string shape_str(const py::array& a) {
+    std::string s = "(";
+    for (py::ssize_t i = 0; i < a.ndim(); i++) {
+        s += (i ? ", " : "") + std::to_string(a.shape(i));
+    }
+    return s + (a.ndim() == 1 ? ",)" : ")");
+}
+
+static py::value_error state_error(
+    const char* fn,
+    const std::string& what,
+    const std::string& expected,
+    const std::string& got)
+{
+    return py::value_error(
+        std::string(fn) + ": out " + what + ": expected " + expected + ", got " + got);
+}
+
+// Checks, in order: item size, C-contiguous, writeable, then shape_ok, then alignment; raises
+// ValueError (expected versus got) on the first that fails. Returns the data pointer: the fill
+// writes straight into the array, no copy.
+static pvz_state_t* state_data(
+    const char* fn,
+    py::array& out,
+    bool shape_ok,
+    const std::string& expected_shape)
+{
+    if (out.itemsize() != static_cast<py::ssize_t>(sizeof(pvz_state_t))) {
+        throw state_error(fn, "itemsize",
+            std::to_string(sizeof(pvz_state_t)), std::to_string(out.itemsize()));
+    }
+
+    if (!(out.flags() & py::array::c_style)) {
+        throw state_error(fn, "layout", "C-contiguous", "a non-contiguous array");
+    }
+
+    if (!out.writeable()) {
+        throw state_error(fn, "flags", "writeable", "a read-only array");
+    }
+
+    if (!shape_ok) {
+        throw state_error(fn, "shape", expected_shape, shape_str(out));
+    }
+
+    auto p = out.mutable_data();
+    auto addr = reinterpret_cast<std::uintptr_t>(p);
+    if (addr % alignof(pvz_state_t) != 0) {
+        throw state_error(fn, "data pointer",
+            "aligned to " + std::to_string(alignof(pvz_state_t)) + " bytes",
+            "address " + std::to_string(addr));
+    }
+
+    return static_cast<pvz_state_t*>(p);
+}
+
 PYBIND11_MODULE(pvzemu, m) {
+    m.attr("STATE_VERSION") = PVZ_STATE_VERSION;
+    m.attr("STATE_SIZE") = PVZ_STATE_SIZE;
+    m.attr("STATE_LAYOUT_HASH") = PVZ_STATE_LAYOUT_HASH;
+    m.attr("STATE_MAGIC") = PVZ_STATE_MAGIC;
+    m.attr("STATE_VALID") = learning::EMULATOR_VALID;
+    m.attr("CD_TABLE") = py::tuple(py::cast(plant::CD_TABLE));
+
     py::class_<std::vector<int>>(m, "IntVector")
         .def(py::init<>())
         .def("__getitem__", [](const std::vector<int>& v, std::vector<int>::size_type i) {
@@ -49,7 +116,10 @@ PYBIND11_MODULE(pvzemu, m) {
         }, py::keep_alive<0, 1>());
 
     py::class_<world>(m, "World")
-        .def_readwrite("scene", &world::scene)
+        // read-only: assigning a whole scene would copy plant_map's pointers into the other
+        // scene's plants (only the copy constructor rebuilds them, object/scene.cpp);
+        // writes to its fields still go through
+        .def_readonly("scene", &world::scene)
         .def_readonly("sun", &world::sun)
         .def_readonly("spawn", &world::spawn)
         .def_readonly("ice_path", &world::ice_path)
@@ -91,7 +161,26 @@ PYBIND11_MODULE(pvzemu, m) {
         .def("__copy__", [](const world& w) { return std::make_unique<world>(w); })
         .def("__deepcopy__", [](const world& w, py::dict) {
             return std::make_unique<world>(w);
-        });
+        })
+        // out: a pvz_state_t array of shape () or (1,), written in place
+        .def("fill_state", [](const world& w, py::array out) {
+            bool shape_ok = out.ndim() == 0 || (out.ndim() == 1 && out.shape(0) == 1);
+            learning::fill_state(w, *state_data("fill_state", out, shape_ok, "() or (1,)"));
+        }, py::arg("out").noconvert())
+        // out: a pvz_state_t array of shape (len(worlds),); out[i] from worlds[i]
+        .def_static("fill_states", [](const std::vector<world*>& worlds, py::array out) {
+            for (size_t i = 0; i < worlds.size(); i++) {
+                if (worlds[i] == nullptr) {
+                    throw py::value_error(
+                        "fill_states: worlds[" + std::to_string(i) + "] is None");
+                }
+            }
+
+            auto n = static_cast<py::ssize_t>(worlds.size());
+            bool shape_ok = out.ndim() == 1 && out.shape(0) == n;
+            learning::fill_states(worlds,
+                state_data("fill_states", out, shape_ok, "(" + std::to_string(n) + ",)"));
+        }, py::arg("worlds"), py::arg("out").noconvert());
 
     py::class_<learning::observation_factory>(m, "ObservationFactory")
         .def(py::init<
@@ -225,6 +314,7 @@ PYBIND11_MODULE(pvzemu, m) {
     py::class_<scene>(m, "Scene")
         .def_readonly("type", &scene::type)
         .def_readonly("zombie_dancing_clock", &scene::zombie_dancing_clock)
+        .def_readonly("tick", &scene::tick)
         .def_readonly("rows", &scene::rows)
         .def_readonly("zombies", &scene::zombies)
         .def_readonly("plants", &scene::plants)
@@ -256,19 +346,22 @@ PYBIND11_MODULE(pvzemu, m) {
         .def("__iter__", [](decltype(scene::zombies) &s) {
             return py::make_iterator(s.begin(), s.end());
         }, py::keep_alive<0, 1>())
-        .def("__len__", &decltype(scene::zombies)::size);
+        .def("__len__", &decltype(scene::zombies)::size)
+        .def("get_index", &decltype(scene::zombies)::get_index);
 
     py::class_<decltype(scene::plants)>(m, "PlantList")
         .def("__iter__", [](decltype(scene::plants) &s) {
             return py::make_iterator(s.begin(), s.end());
         }, py::keep_alive<0, 1>())
-        .def("__len__", &decltype(scene::plants)::size);
+        .def("__len__", &decltype(scene::plants)::size)
+        .def("get_index", &decltype(scene::plants)::get_index);
 
     py::class_<decltype(scene::griditems)>(m, "GriditemList")
         .def("__iter__", [](decltype(scene::griditems) &s) {
             return py::make_iterator(s.begin(), s.end());
         }, py::keep_alive<0, 1>())
-        .def("__len__", &decltype(scene::griditems)::size);
+        .def("__len__", &decltype(scene::griditems)::size)
+        .def("get_index", &decltype(scene::griditems)::get_index);
 
     py::class_<decltype(scene::projectiles)>(m, "ProjectileList")
         .def("__iter__", [](decltype(scene::projectiles) &s) {

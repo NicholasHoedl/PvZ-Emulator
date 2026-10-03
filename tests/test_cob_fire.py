@@ -15,8 +15,8 @@ Emulator facts used here (cited as emulator <path>:<line>):
 - system/plant/plant_factory.cpp:440-442: a cannon occupies plant_map[row][col] and [col + 1].
 - object/obj_list.h:34-38: scene.plants iterates in slot order; slots are handed out in creation
   order on a fresh list (obj_list.h:106-110).
-- object/scene.h:170: pool has 6 rows.
-- world.cpp:115-117: the mask has len(actions) + 1 slots, the last (no-op) always 1.
+- object/scene.h:175: pool has 6 rows.
+- world.cpp:122-124: the mask has len(actions) + 1 slots, the last (no-op) always 1.
 - system/plant/plant_base.cpp:70: countdown.dead starts at 200; plant_system.cpp:450-453: a smashed
   plant is destroyed only once that counts below 1, and plant_system.cpp:461-466 skips its status
   updates, so a cannon marked smashed stays alive and armed_idle for the ticks below.
@@ -24,7 +24,7 @@ Emulator facts used here (cited as emulator <path>:<line>):
 import pvzemu
 
 COB_FIRE = -3  # step 1.2 action op
-POOL_ROWS = 6  # emulator object/scene.h:170
+POOL_ROWS = 6  # emulator object/scene.h:175
 CLICK_X = 400  # test choice: a click pixel inside the lawn
 ARM_CAP = 5000  # test choice: generous cap for the first arming (500 countdown + charge anim)
 REARM_CAP = 10000  # test choice: re-arm waits 3000 (plant_system.cpp:436) + launch and charge anims

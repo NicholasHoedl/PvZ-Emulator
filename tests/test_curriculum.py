@@ -1,35 +1,35 @@
 """Step 1.5: curriculum hooks: World.build, writable sun and flag counter, PlantFactory.get_cost.
 
 Emulator facts used here (cited as emulator <path>:<line>):
-- world.h:119-122: check_list is a vector of (plant_type, row, col); world.cpp:373-399:
+- world.h:119-122: check_list is a vector of (plant_type, row, col); world.cpp:374-400:
   check_build checks a pumpkin entry against plant_map[row][col].pumpkin, a lily pad or flower
   pot against .base with that type, and any other plant against .content with that type.
 - system/plant/plant_factory.cpp:273-277: create(type, row, col, imitater_target) places a plant
   with no sun cost or cooldown; plant_factory.cpp:434-445 sets the plant_map cells, a cannon
   taking [row][col] and [row][col + 1].
-- world.cpp:85-91: op -1 shovels plant_map[row][col].content; plant_factory.cpp:592-594: destroy
+- world.cpp:86-92: op -1 shovels plant_map[row][col].content; plant_factory.cpp:592-594: destroy
   clears that cell.
-- object/scene.h:59: spawn.total_flags; scene.h:88 and object/scene.cpp:283 (reset): it starts
-  at 1000; scene.cpp:127-128: to_json writes it under the key "total_flags".
+- object/scene.h:62: spawn.total_flags; scene.h:91 and object/scene.cpp:288 (reset): it starts
+  at 1000; scene.cpp:131-132: to_json writes it under the key "total_flags".
 - system/spawn.cpp:458-469: spawn::reset sets wave 0 and rebuilds the spawn flags and list
   without touching total_flags.
-- object/scene.h:95: sun.sun; scene.h:100 and scene.cpp:289 (reset): it starts at 9990.
+- object/scene.h:98: sun.sun; scene.h:103 and scene.cpp:294 (reset): it starts at 9990.
 - plant_factory.cpp:157: can_plant refuses when get_cost(type) > scene.sun.sun;
-  plant_factory.cpp:529: plant spends get_cost(type); world.cpp:173-182: a card's mask is 1 when
+  plant_factory.cpp:529: plant spends get_cost(type); world.cpp:174-185: a card's mask is 1 when
   it is off cooldown and can_plant agrees.
 - system/sun.cpp:11-12: the natural sun countdown is at least 425, so one update on a fresh pool
   world adds no sun.
 - system/spawn.cpp:166: gen_spawn_list picks wave types from t < giga_gargantuar, and
   object/zombie.h:38: giga_gargantuar = 0x20 is the last zombie type, so no spawn list holds one.
   spawn.cpp:108-110: gargantuar is gated only by its per-wave count, never by the flag counter.
-- object/scene.h:166: pool water rows are 2 and 3; scene.h:170: pool has 6 rows.
+- object/scene.h:171: pool water rows are 2 and 3; scene.h:175: pool has 6 rows.
 """
 import pvzemu
 
-SHOVEL = -1  # emulator world.cpp:85
-POOL_ROWS = 6  # emulator object/scene.h:170
-START_FLAGS = 1000  # emulator object/scene.h:88
-START_SUN = 9990  # emulator object/scene.h:100
+SHOVEL = -1  # emulator world.cpp:86
+POOL_ROWS = 6  # emulator object/scene.h:175
+START_FLAGS = 1000  # emulator object/scene.h:91
+START_SUN = 9990  # emulator object/scene.h:103
 
 # Test choices, not game facts: the 1.4 clone test's ten cards, defence and cannon cells, a
 # flag counter well past the start, a free land cell, a seed count for the spawn-list check.
@@ -50,7 +50,7 @@ CARDS = [
 COB_CELLS = [(1, 0), (4, 0)]
 LAND_DEFENCE = [None, None, _P.winter_melon] + [_P.gatling_pea] * 4 + [_P.tallnut] * 2
 WATER_DEFENCE = [_P.cattail] * 2 + [_P.winter_melon] + [_P.gatling_pea] * 4 + [_P.tallnut] * 2
-WATER_ROWS = (2, 3)  # emulator object/scene.h:166
+WATER_ROWS = (2, 3)  # emulator object/scene.h:171
 FLAGS = 1020
 FREE_LAND = (0, 5)
 SEEDS = range(20)

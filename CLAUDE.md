@@ -16,6 +16,7 @@ The x64 C++ emulator with pybind11 bindings, loaded by the Python agent. The pvz
 - **Exception: the upstream PRs Nick picks in step 0.7.** Record each one in pvz-rl `docs/decisions.md`, including whether it changes game mechanics, so Phase 4 can cover it. The 0.9 smoke tests check those PRs and the 0.8 build fixes; from then on, every change keeps the whole suite passing.
 - New features (cob fire `op = -3`, seeding, `World.clone()`, curriculum hooks, the schema adapter) are additions. When a feature is not used, behavior stays identical to upstream.
 - Reuse the emulator's own conversions and constants (row to pixel, tick timings, plant and zombie stats). Find them in the source and cite file and line; never invent them.
+- `schema/pvz_state.h` is a generated, byte-identical copy of pvz-rl's `schema/pvz_state.h` (written there by `python -m schema.gen --write`). Never edit it here. A header change is committed in this fork first, then in pvz-rl.
 - Commits carry the roadmap step ID. Merged upstream PRs keep their merge commit, named after the PR number. Push each fork commit before pvz-rl updates its submodule pointer to it.
 
 ## Legal
