@@ -22,8 +22,8 @@ Emulator facts used here (cited as emulator <path>:<line>):
 - world.cpp:90: plant and shovel ops need 0 <= row < rows and 0 <= col < 9.
 - object/scene.h:175: pool has 6 rows; object/scene.h:171: its water rows are 2 and 3.
 - object/plant.h:12-13 and :61: plant codes run from pea_shooter 0 to imitater 0x30 (48).
-- system/plant/plant_factory.cpp:455-460: plant() refuses a card on cooldown;
-  plant_factory.cpp:529 spends the cost; :541 sets the card's cooldown.
+- system/plant/plant_factory.cpp:457-462: plant() refuses a card on cooldown;
+  plant_factory.cpp:531 spends the cost; :543 sets the card's cooldown.
 - system/plant/plant_factory.cpp:210-215: a coffee bean needs a sleeping content plant;
   system/plant/plant_base.cpp:219-223: a mushroom created in a pool scene goes to sleep.
 - system/sun.cpp:23-24: in a pool scene, natural sun adds 25 to sun.sun when its countdown

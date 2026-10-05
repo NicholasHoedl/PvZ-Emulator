@@ -11,7 +11,7 @@ Emulator facts used here (cited as emulator <path>:<line>):
   is_disappeared. obj_list.h:138-145: get_index(obj) is the object's slot index.
 - obj_list.h:158-188: size() returns n_actives, which only shrink_to_fit() recounts;
   world.cpp:16-21 and 31: world::update() shrinks the lists at its start.
-  system/plant/plant_factory.cpp:546-547: destroy() sets is_dead;
+  system/plant/plant_factory.cpp:548-549: destroy() sets is_dead;
   system/zombie/zombie_factory.cpp:183-184: so does the zombie factory's destroy().
 - object/scene.h:52-54: list capacities zombies 1024, plants 512, grid items 128.
 - object/scene.h:85: spawn_flags has 33 entries.
@@ -26,7 +26,7 @@ Emulator facts used here (cited as emulator <path>:<line>):
   system/reanim.cpp:163-164: progress advances each update; reanim.cpp:175-178: a once
   animation stops at exactly 1 and sets n_repeated.
 - world.cpp:85-89: op -3 fires the next armed cob at (row, x).
-- object/plant.cpp:38-45: CD_TABLE, 48 entries; system/plant/plant_factory.cpp:464 and :541: a
+- object/plant.cpp:38-45: CD_TABLE, 48 entries; system/plant/plant_factory.cpp:466 and :543: a
   planted card's cooldown is CD_TABLE[target], target = imitater_type for an imitater card.
 - world.cpp:126: a card counts as usable when its type is not none and cold_down == 0;
   world.cpp:409-414: select_plants sets every slot past the given list to type none.
@@ -498,7 +498,7 @@ def test_empty_and_imitater_cards():
     w = pvzemu.World(pvzemu.SceneType.pool, SEED)
     assert w.select_plants([_P.pea_shooter, _P.imitater, _P.sunflower], _P.cherry_bomb) is True
     assert len(pvzemu.CD_TABLE) == N_CD_TABLE
-    # The binding's table is the one plant() charges (plant_factory.cpp:541).
+    # The binding's table is the one plant() charges (plant_factory.cpp:543).
     assert w.plant(_P.sunflower, 0, 4) is True
     assert w.scene.cards[2].cold_down == pvzemu.CD_TABLE[int(_P.sunflower)]
 

@@ -12,7 +12,7 @@ Emulator facts used here (cited as emulator <path>:<line>):
   plant_system.cpp:302-311: a cob projectile gets cannon_row = get_row_by_x_and_y(cannon.x, cannon.y).
 - system/plant/plant_system.cpp:434-439: after the launch animation the cannon goes back to
   unarmed_idle with countdown.status = 3000, then re-arms as above.
-- system/plant/plant_factory.cpp:440-442: a cannon occupies plant_map[row][col] and [col + 1].
+- system/plant/plant_factory.cpp:442-444: a cannon occupies plant_map[row][col] and [col + 1].
 - object/obj_list.h:34-38: scene.plants iterates in slot order; slots are handed out in creation
   order on a fresh list (obj_list.h:106-110).
 - object/scene.h:175: pool has 6 rows.

@@ -4,10 +4,10 @@ Emulator facts used here (cited as emulator <path>:<line>):
 - world.h:157-160: check_list is a vector of (plant_type, row, col); world.cpp:484-510:
   check_build checks a pumpkin entry against plant_map[row][col].pumpkin, a lily pad or flower
   pot against .base with that type, and any other plant against .content with that type.
-- system/plant/plant_factory.cpp:273-277: create(type, row, col, imitater_target) places a plant
-  with no sun cost or cooldown; plant_factory.cpp:434-445 sets the plant_map cells, a cannon
+- system/plant/plant_factory.cpp:275-279: create(type, row, col, imitater_target) places a plant
+  with no sun cost or cooldown; plant_factory.cpp:436-447 sets the plant_map cells, a cannon
   taking [row][col] and [row][col + 1].
-- world.cpp:96-104: op -1 shovels plant_map[row][col].content; plant_factory.cpp:592-594: destroy
+- world.cpp:96-104: op -1 shovels plant_map[row][col].content; plant_factory.cpp:594-596: destroy
   clears that cell.
 - object/scene.h:62: spawn.total_flags; scene.h:91 and object/scene.cpp:288 (reset): it starts
   at 1000; scene.cpp:131-132: to_json writes it under the key "total_flags".
@@ -15,7 +15,7 @@ Emulator facts used here (cited as emulator <path>:<line>):
   without touching total_flags.
 - object/scene.h:98: sun.sun; scene.h:103 and scene.cpp:294 (reset): it starts at 9990.
 - plant_factory.cpp:157: can_plant refuses when get_cost(type) > scene.sun.sun;
-  plant_factory.cpp:529: plant spends get_cost(type); world.cpp:178-189: a card's mask is 1 when
+  plant_factory.cpp:531: plant spends get_cost(type); world.cpp:178-189: a card's mask is 1 when
   it is off cooldown and can_plant agrees.
 - system/sun.cpp:11-12: the natural sun countdown is at least 425, so one update on a fresh pool
   world adds no sun.

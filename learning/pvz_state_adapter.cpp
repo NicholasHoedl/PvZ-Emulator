@@ -133,7 +133,7 @@ static void write_card(pvz_card_t& e, const scene::card_data& c) {
     bool empty = c.type == plant_type::none;
 
     // a planted card's cooldown is CD_TABLE[target], target = the imitater's type for an
-    // imitater card (system/plant/plant_factory.cpp:464, :541)
+    // imitater card (system/plant/plant_factory.cpp:466, :543)
     auto target = static_cast<int>(
         c.type == plant_type::imitater ? c.imitater_type : c.type);
     bool in_table = target >= 0 && target < static_cast<int>(plant::CD_TABLE.size());

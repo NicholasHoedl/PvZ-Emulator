@@ -19,7 +19,7 @@ bool plant_factory::can_plant_advanced_plant(
 
     switch (advanced) {
     case plant_type::gatling_pea:
-        return status.content->type == plant_type::gatling_pea;
+        return status.content->type == plant_type::repeater;
 
     case plant_type::twin_sunflower:
         return status.content->type == plant_type::sunflower;
@@ -246,6 +246,14 @@ bool plant_factory::can_plant(
             status.content->hp < 2 * 8000 / 3 &&
             status.content->edible != plant_edible_status::invisible_and_edible;
 
+    case plant_type::gatling_pea:
+    case plant_type::twin_sunflower:
+    case plant_type::gloomshroom:
+    case plant_type::winter_melon:
+    case plant_type::gold_magnet:
+    case plant_type::cob_cannon:
+        return can_plant_advanced_plant(status, target_type);
+
     default:
         if (status.content != nullptr) {
             return false;
@@ -256,13 +264,7 @@ bool plant_factory::can_plant(
     case plant_type::potato_mine:
         return !is_water_row;
 
-    case plant_type::gatling_pea:
-    case plant_type::twin_sunflower:
-    case plant_type::gloomshroom:
     case plant_type::cattail:
-    case plant_type::winter_melon:
-    case plant_type::gold_magnet:
-    case plant_type::cob_cannon:
         return can_plant_advanced_plant(status, target_type);
 
     default:

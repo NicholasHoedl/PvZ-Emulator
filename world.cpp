@@ -509,7 +509,7 @@ bool world::check_build(const check_list &plants) {
     return true;
 }
 
-// For an empty board. plant_factory.create (system/plant/plant_factory.cpp:273-277) places
+// For an empty board. plant_factory.create (system/plant/plant_factory.cpp:275-279) places
 // each plant with no sun cost or cooldown, in list order, so the caller orders the entries: a
 // lily pad before the plant on it, a pumpkin after the plant it covers. The same list serves
 // check_build and update_all.

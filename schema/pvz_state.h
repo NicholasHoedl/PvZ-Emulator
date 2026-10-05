@@ -288,7 +288,7 @@ typedef struct pvz_card_t {
      * the cooldown table entry of the card's type, or of the imitater's target for an
      *   imitater card; 0 for an empty card
      * emulator: CD_TABLE[target], target = the imitater's type for an imitater card
-     *   (emulator system/plant/plant_factory.cpp:464, :541; object/plant.cpp:38-45)
+     *   (emulator system/plant/plant_factory.cpp:466, :543; object/plant.cpp:38-45)
      * game: seed.initial_cd */
     int32_t cd_total;
     /* @16 usable: int32_t. valid: PVZ_VALID_CARDS.

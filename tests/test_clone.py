@@ -6,8 +6,8 @@ Emulator facts used here (cited as emulator <path>:<line>):
   spawn system's constructor calls reset() (system/spawn.cpp:33-41), which rebuilds the spawn
   flags and the spawn list (spawn.cpp:458-469), all from scene.rng.
 - object/scene.cpp:5-47: scene's copy constructor rebuilds plant_map from the plant list;
-  system/plant/plant_factory.cpp:440-442: a cannon occupies plant_map[row][col] and [col + 1];
-  plant_factory.cpp:249-251: a plain plant can't go where plant_map[row][col].content is set.
+  system/plant/plant_factory.cpp:442-444: a cannon occupies plant_map[row][col] and [col + 1];
+  plant_factory.cpp:257-259: a plain plant can't go where plant_map[row][col].content is set.
 - world.cpp:96-104: op -1 shovels plant_map[row][col].content; world.cpp:178-189: a card's mask
   is 1 when it is off cooldown and plant_factory.can_plant agrees.
 - system/plant/cob_cannon.cpp:34: launch() sets countdown.launch = 206, so the cob projectile
